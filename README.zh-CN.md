@@ -6,7 +6,7 @@ Studio Code 扩展。
 [![Marketplace](https://img.shields.io/visual-studio-marketplace/v/blade-build.vscode-blade?label=Marketplace&logo=visualstudiocode)](https://marketplace.visualstudio.com/items?itemName=blade-build.vscode-blade)
 [![Installs](https://img.shields.io/visual-studio-marketplace/i/blade-build.vscode-blade)](https://marketplace.visualstudio.com/items?itemName=blade-build.vscode-blade)
 
-*[English](README.md) · [文档](https://blade-build.github.io/)*
+*[English](README.md) · [文档](https://github.com/blade-build/vscode-blade/tree/main/doc/zh_CN)*
 
 **安装：** [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=blade-build.vscode-blade)
 · 或运行 `code --install-extension blade-build.vscode-blade`
