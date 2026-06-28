@@ -7,6 +7,34 @@ type Node =
   | { kind: 'dir'; path: string }
   | { kind: 'target'; target: BladeTarget };
 
+/**
+ * Immediate sub-directory paths of `parent` implied by the package paths in
+ * `paths`, sorted. A package living directly in `parent` is not a
+ * sub-directory; deeper packages contribute only their first segment (so
+ * intermediate directories without a BUILD file still appear). Pure — exported
+ * for testing.
+ */
+export function subdirectories(paths: readonly string[], parent: string): string[] {
+  const prefix = parent === '' ? '' : `${parent}/`;
+  const segments = new Set<string>();
+  for (const p of paths) {
+    if (parent !== '' && !p.startsWith(prefix)) {
+      continue;
+    }
+    const rest = p.slice(prefix.length);
+    if (rest === '') {
+      continue;
+    }
+    segments.add(rest.split('/')[0]);
+  }
+  return [...segments].sort((a, b) => a.localeCompare(b)).map((seg) => prefix + seg);
+}
+
+/** The recursive blade scope (`//...` or `//path/...`) for a directory path. */
+export function dirScope(path: string): string {
+  return path === '' ? '//...' : `//${path}/...`;
+}
+
 function iconFor(t: BladeTarget): vscode.ThemeIcon {
   if (isTestable(t)) {
     return new vscode.ThemeIcon('beaker');
@@ -121,21 +149,10 @@ export class BladeTreeProvider implements vscode.TreeDataProvider<Node> {
    * so deeper packages remain reachable.
    */
   private childrenOf(parent: string): Node[] {
-    const prefix = parent === '' ? '' : `${parent}/`;
-    const segments = new Set<string>();
-    for (const t of this.model.targets) {
-      if (parent !== '' && !t.path.startsWith(prefix)) {
-        continue;
-      }
-      const rest = t.path.slice(prefix.length);
-      if (rest === '') {
-        continue; // target lives directly in `parent`, not a sub-directory
-      }
-      segments.add(rest.split('/')[0]);
-    }
-    const dirs: Node[] = [...segments]
-      .sort((a, b) => a.localeCompare(b))
-      .map((seg) => ({ kind: 'dir', path: prefix + seg }));
+    const dirs: Node[] = subdirectories(
+      this.model.targets.map((t) => t.path),
+      parent
+    ).map((path) => ({ kind: 'dir', path }));
     const targets: Node[] = this.model
       .inPackage(parent)
       .slice()

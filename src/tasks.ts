@@ -15,7 +15,8 @@ interface BladeTaskDefinition extends vscode.TaskDefinition {
   profile?: BladeProfile;
 }
 
-function bladeArgsFor(
+/** The full blade argument vector for an action (exported for testing). */
+export function bladeArgsFor(
   action: BladeAction,
   label: string | undefined,
   cfg: BladeConfig,

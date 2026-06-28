@@ -11,7 +11,7 @@ import { ProfileState, BladeProfile } from './profile';
 import { StatusBar } from './statusBar';
 import { BladeTaskProvider, BladeAction, createBladeTask, executeBladeTask } from './tasks';
 import { TargetModel } from './targetModel';
-import { BladeTreeProvider } from './tree';
+import { BladeTreeProvider, dirScope } from './tree';
 import { BladeTarget, isTestable, targetLabel } from './types';
 
 // Tree nodes pass `{ kind: 'target', target }`; commands may also receive a bare
@@ -139,7 +139,7 @@ export function activate(context: vscode.ExtensionContext): void {
     if (arg && typeof arg === 'object') {
       const obj = arg as { kind?: string; path?: string };
       if (obj.kind === 'dir' && typeof obj.path === 'string') {
-        return obj.path === '' ? '//...' : `//${obj.path}/...`;
+        return dirScope(obj.path);
       }
     }
     return undefined;
