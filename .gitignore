@@ -1,0 +1,9 @@
+node_modules/
+out/
+dist/
+*.vsix
+.vscode-test/
+_site/
+*.log
+.DS_Store
+DESIGN.md

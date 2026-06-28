@@ -1,0 +1,265 @@
+{
+  "name": "vscode-blade",
+  "displayName": "Blade",
+  "description": "First-party Visual Studio Code support for the Blade build system: build/run/test targets, a targets explorer, BUILD-file language features, and clangd-based C/C++ IntelliSense.",
+  "version": "0.1.0",
+  "publisher": "blade-build",
+  "license": "MIT",
+  "icon": "assets/logo.png",
+  "homepage": "https://github.com/blade-build/vscode-blade#readme",
+  "bugs": {
+    "url": "https://github.com/blade-build/vscode-blade/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/blade-build/vscode-blade"
+  },
+  "engines": {
+    "vscode": "^1.84.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Other"
+  ],
+  "keywords": [
+    "blade",
+    "build",
+    "c++",
+    "bazel",
+    "monorepo"
+  ],
+  "activationEvents": [
+    "workspaceContains:**/BLADE_ROOT"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "blade-build",
+        "aliases": [
+          "Blade BUILD",
+          "blade-build"
+        ],
+        "filenames": [
+          "BUILD",
+          "BLADE_ROOT"
+        ],
+        "filenamePatterns": [
+          "*.BUILD",
+          "BUILD.*"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "blade-build",
+        "scopeName": "source.blade-build",
+        "path": "./syntaxes/blade-build.tmLanguage.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "blade.refreshTargets",
+        "title": "Refresh Targets",
+        "category": "Blade",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "blade.selectTarget",
+        "title": "Select Active Target",
+        "category": "Blade"
+      },
+      {
+        "command": "blade.build",
+        "title": "Build Active Target",
+        "category": "Blade",
+        "icon": "$(gear)"
+      },
+      {
+        "command": "blade.run",
+        "title": "Run Active Target",
+        "category": "Blade",
+        "icon": "$(run)"
+      },
+      {
+        "command": "blade.test",
+        "title": "Test Active Target",
+        "category": "Blade",
+        "icon": "$(beaker)"
+      },
+      {
+        "command": "blade.clean",
+        "title": "Clean",
+        "category": "Blade",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "blade.generateCompdb",
+        "title": "Generate compile_commands.json",
+        "category": "Blade"
+      },
+      {
+        "command": "blade.buildTarget",
+        "title": "Build",
+        "category": "Blade",
+        "icon": "$(gear)"
+      },
+      {
+        "command": "blade.runTarget",
+        "title": "Run",
+        "category": "Blade",
+        "icon": "$(run)"
+      },
+      {
+        "command": "blade.testTarget",
+        "title": "Test",
+        "category": "Blade",
+        "icon": "$(beaker)"
+      },
+      {
+        "command": "blade.debugTarget",
+        "title": "Debug",
+        "category": "Blade",
+        "icon": "$(debug-alt)"
+      },
+      {
+        "command": "blade.revealTarget",
+        "title": "Reveal in BUILD File",
+        "category": "Blade",
+        "icon": "$(go-to-file)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "blade",
+          "title": "Blade",
+          "icon": "assets/activity.svg"
+        }
+      ]
+    },
+    "views": {
+      "blade": [
+        {
+          "id": "bladeTargets",
+          "name": "Targets",
+          "icon": "assets/activity.svg",
+          "contextualTitle": "Blade Targets"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "bladeTargets",
+        "contents": "No Blade workspace detected (no BLADE_ROOT found).\n[Refresh](command:blade.refreshTargets)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "blade.refreshTargets",
+          "when": "view == bladeTargets",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "blade.buildTarget",
+          "when": "view == bladeTargets && viewItem =~ /^target/",
+          "group": "inline@1"
+        },
+        {
+          "command": "blade.runTarget",
+          "when": "view == bladeTargets && viewItem =~ /runnable/",
+          "group": "inline@2"
+        },
+        {
+          "command": "blade.testTarget",
+          "when": "view == bladeTargets && viewItem =~ /testable/",
+          "group": "inline@2"
+        },
+        {
+          "command": "blade.debugTarget",
+          "when": "view == bladeTargets && viewItem =~ /debuggable/",
+          "group": "inline@3"
+        },
+        {
+          "command": "blade.revealTarget",
+          "when": "view == bladeTargets && viewItem =~ /^target/",
+          "group": "navigation@1"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Blade",
+      "properties": {
+        "blade.executable": {
+          "type": "string",
+          "default": "blade",
+          "description": "Path to the blade executable."
+        },
+        "blade.jobs": {
+          "type": "number",
+          "default": 0,
+          "minimum": 0,
+          "markdownDescription": "Parallel build jobs (`-j`). `0` lets blade auto-detect the number of CPUs."
+        },
+        "blade.commandPrefix": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "markdownDescription": "Tokens prepended to every blade command (e.g. `bear`, `--`, or a wrapper script)."
+        },
+        "blade.environment": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "description": "Extra environment variables for blade tasks."
+        },
+        "blade.buildBeforeRun": {
+          "type": "boolean",
+          "default": true,
+          "description": "Build a target before running it (blade run already builds; disable to skip the explicit build task)."
+        },
+        "blade.generateCompdbOnRefresh": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Regenerate `compile_commands.json` when targets are refreshed (powers clangd C/C++ IntelliSense)."
+        },
+        "blade.recommendClangd": {
+          "type": "boolean",
+          "default": true,
+          "description": "Suggest installing the clangd extension for C/C++ IntelliSense when a compilation database is generated."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "node esbuild.js",
+    "watch": "node esbuild.js --watch",
+    "package": "node esbuild.js --production",
+    "compile-tests": "tsc -p ./",
+    "check-types": "tsc --noEmit",
+    "lint": "eslint src",
+    "pretest": "npm run compile-tests && npm run lint",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^20.x",
+    "@types/vscode": "^1.84.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "@vscode/test-cli": "^0.0.9",
+    "@vscode/test-electron": "^2.3.9",
+    "esbuild": "^0.21.0",
+    "eslint": "^8.57.0",
+    "typescript": "^5.4.0"
+  }
+}

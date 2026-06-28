@@ -1,0 +1,34 @@
+# MkDocs config for the English documentation (readthedocs theme), mirroring the
+# Blade docs. Page titles come from each file's H1; only section headers below
+# are spelled out.
+site_name: Blade for VS Code
+site_description: Documentation for the Blade Visual Studio Code extension
+site_url: https://blade-build.github.io/vscode-blade/docs/en/
+repo_url: https://github.com/blade-build/vscode-blade
+repo_name: blade-build/vscode-blade
+docs_dir: en
+site_dir: ../_site/en
+use_directory_urls: true
+
+theme:
+  name: readthedocs
+  highlightjs: true
+
+markdown_extensions:
+  - admonition
+  - toc:
+      permalink: true
+  - tables
+  - fenced_code
+
+nav:
+  - index.md
+  - Getting Started:
+      - getting-started.md
+  - User Guide:
+      - usage.md
+      - build-language.md
+      - intellisense.md
+      - settings.md
+  - Development:
+      - development.md

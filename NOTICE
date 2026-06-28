@@ -1,0 +1,11 @@
+vscode-blade
+Copyright (c) 2026 The Blade Authors
+
+This extension was inspired by, and supersedes, the community extension
+"BLADE" (publisher id: dhwang, https://marketplace.visualstudio.com/items?itemName=dhwang.blade)
+by Daohui Wang (@wangdh15), released under the MIT License. The original
+extension demonstrated the task-runner UX for Blade in VS Code. This is a
+clean-room reimplementation with a different architecture (blade-as-source-of-
+truth via `blade dump`/`query`, the VS Code Tasks API, and BUILD-file language
+features); no source code from the original is included, but we gratefully
+acknowledge the prior art.

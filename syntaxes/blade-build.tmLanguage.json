@@ -1,0 +1,51 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Blade BUILD",
+  "scopeName": "source.blade-build",
+  "patterns": [
+    { "include": "#comment" },
+    { "include": "#rule-call" },
+    { "include": "#constant" },
+    { "include": "#string" },
+    { "include": "#number" },
+    { "include": "#attribute" }
+  ],
+  "repository": {
+    "comment": {
+      "name": "comment.line.number-sign.blade-build",
+      "match": "#.*$"
+    },
+    "rule-call": {
+      "match": "\\b(cc_library|cc_binary|cc_test|cc_benchmark|proto_library|thrift_library|swig_library|java_library|java_binary|java_test|scala_library|scala_binary|scala_test|py_library|py_binary|py_test|resource_library|gen_rule|sh_test|lex_yacc_library|cu_library|cu_binary|cu_test)\\b(?=\\s*\\()",
+      "name": "support.function.builtin.blade-build"
+    },
+    "constant": {
+      "name": "constant.language.blade-build",
+      "match": "\\b(True|False|None)\\b"
+    },
+    "attribute": {
+      "match": "\\b(name|srcs|hdrs|deps|visibility|tags|defs|incs|warning|optimize|extra_cppflags|link_all_symbols|testdata|outs|cmd|prebuilt|export_incs)\\b(?=\\s*=)",
+      "name": "variable.parameter.blade-build"
+    },
+    "string": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.blade-build",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [{ "name": "constant.character.escape.blade-build", "match": "\\\\." }]
+        },
+        {
+          "name": "string.quoted.single.blade-build",
+          "begin": "'",
+          "end": "'",
+          "patterns": [{ "name": "constant.character.escape.blade-build", "match": "\\\\." }]
+        }
+      ]
+    },
+    "number": {
+      "name": "constant.numeric.blade-build",
+      "match": "\\b[0-9]+\\b"
+    }
+  }
+}
