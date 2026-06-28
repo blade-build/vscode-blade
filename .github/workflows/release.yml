@@ -1,0 +1,63 @@
+name: Release
+
+# Tag a version to release, e.g. `git tag v0.2.0 && git push origin v0.2.0`.
+# Builds the VSIX, attaches it to a GitHub Release, and — when the matching
+# secrets are configured — publishes to the VS Code Marketplace and Open VSX.
+#
+# Required repo secrets (Settings → Secrets and variables → Actions):
+#   VSCE_PAT  Azure DevOps PAT (Marketplace → Manage) for the `blade-build` publisher.
+#   OVSX_PAT  Open VSX access token (optional; skipped if unset).
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write # create the GitHub Release
+
+jobs:
+  release:
+    name: Publish
+    runs-on: ubuntu-latest
+    env:
+      VSCE_PAT: ${{ secrets.VSCE_PAT }}
+      OVSX_PAT: ${{ secrets.OVSX_PAT }}
+      VSIX: vscode-blade-${{ github.ref_name }}.vsix
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+
+      - name: Check tag matches package.json version
+        run: |
+          pkg=$(node -p "require('./package.json').version")
+          tag=${GITHUB_REF_NAME#v}
+          if [ "$pkg" != "$tag" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match package.json version $pkg"
+            exit 1
+          fi
+
+      - name: Type check & lint
+        run: |
+          npm run check-types
+          npm run lint
+
+      - name: Package VSIX
+        run: npx --yes @vscode/vsce package --no-dependencies -o "$VSIX"
+
+      - name: Publish to VS Code Marketplace
+        if: ${{ env.VSCE_PAT != '' }}
+        run: npx --yes @vscode/vsce publish --no-dependencies --packagePath "$VSIX"
+
+      - name: Publish to Open VSX
+        if: ${{ env.OVSX_PAT != '' }}
+        run: npx --yes ovsx publish "$VSIX" -p "$OVSX_PAT"
+
+      - name: GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.VSIX }}
+          generate_release_notes: true

@@ -1,6 +1,8 @@
 .vscode/**
+.claude/**
 .vscode-test/**
 .vscode-test.mjs
+*.vsix
 src/**
 out/**
 doc/**
