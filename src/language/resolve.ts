@@ -52,7 +52,8 @@ export async function locateTarget(
     return undefined;
   }
   const decl = parseBuildDocument(doc).find((d) => d.name === resolved.name);
-  const range = decl?.nameRange ?? decl?.ruleRange ?? new vscode.Range(0, 0, 0, 0);
+  const range =
+    decl?.nameAttrRange ?? decl?.nameRange ?? decl?.ruleRange ?? new vscode.Range(0, 0, 0, 0);
   return new vscode.Location(buildUri, range);
 }
 

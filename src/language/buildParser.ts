@@ -5,6 +5,7 @@ export interface TargetDecl {
   name?: string;
   ruleRange: vscode.Range; // the rule function identifier
   nameRange?: vscode.Range; // the name string literal value (without quotes)
+  nameAttrRange?: vscode.Range; // the whole `name = '...'` attribute, quotes included
   fullRange: vscode.Range; // the whole rule(...) call
 }
 
@@ -73,11 +74,19 @@ export function parseBuildDocument(doc: vscode.TextDocument): TargetDecl[] {
     };
     const nameMatch = NAME_ATTR.exec(body);
     if (nameMatch) {
-      const valueOffset = openParen + nameMatch.index + nameMatch[0].length - nameMatch[2].length - 1;
+      const attrStart = openParen + nameMatch.index;
+      const valueOffset = attrStart + nameMatch[0].length - nameMatch[2].length - 1;
       decl.name = nameMatch[2];
       decl.nameRange = new vscode.Range(
         doc.positionAt(valueOffset),
         doc.positionAt(valueOffset + nameMatch[2].length)
+      );
+      // Whole `name = '...'` attribute. Selecting this (rather than the bare
+      // value) keeps "Reveal in BUILD File" on the declaration line and avoids
+      // the editor highlighting every other occurrence of the target name.
+      decl.nameAttrRange = new vscode.Range(
+        doc.positionAt(attrStart),
+        doc.positionAt(attrStart + nameMatch[0].length)
       );
     }
     decls.push(decl);

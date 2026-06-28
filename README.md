@@ -7,11 +7,18 @@ build system.
 
 ## Features
 
-- **Targets explorer** — every target in the workspace, grouped by package, with
-  inline **build / run / test / debug** actions.
+- **Targets explorer** — every target in the workspace, laid out as a **directory
+  tree** with inline **build / run / test / debug** actions. Hover a directory
+  (or the `//` root) to **build / test it recursively** (`//path/...`). Expand /
+  collapse state is remembered across sessions; synthetic external libraries
+  (`#pthread`, …) are hidden.
 - **Build, run, test, clean** from the status bar, the command palette, or the
   explorer — executed through the VS Code **Tasks API**, so compiler errors land
   in the Problems panel and a failed build never silently runs a stale binary.
+  Pass extra flags per action with `blade.buildArgs` / `testArgs` / `runArgs`.
+- **Build profile** — a **release / debug** selector in the targets view title
+  injects `-p <profile>` into every build / run / test / debug (default
+  `release`, remembered per workspace).
 - **BUILD-file language support** — syntax highlighting, an outline of targets,
   **go-to-definition** on dependency labels (`//path:name`, `:name`),
   completion of rule types / attributes / dependency labels, hover, and warnings
@@ -44,8 +51,10 @@ is understood accurately.
 | `blade.executable` | `blade` | Path to the blade executable. |
 | `blade.jobs` | `0` | Parallel jobs (`-j`); `0` lets blade auto-detect CPUs. |
 | `blade.commandPrefix` | `[]` | Tokens prepended to every blade command (e.g. a wrapper). |
+| `blade.buildArgs` | `[]` | Extra options for `blade build` (e.g. `["-p", "debug"]`). |
+| `blade.testArgs` | `[]` | Extra options for `blade test` (e.g. `["--full-test"]`). |
+| `blade.runArgs` | `[]` | Extra options for `blade run` (e.g. `["-p", "release"]`). |
 | `blade.environment` | `{}` | Extra environment variables for blade tasks. |
-| `blade.buildBeforeRun` | `true` | Build before running a target. |
 | `blade.generateCompdbOnRefresh` | `true` | Regenerate `compile_commands.json` on refresh. |
 | `blade.recommendClangd` | `true` | Suggest installing clangd for C/C++ IntelliSense. |
 

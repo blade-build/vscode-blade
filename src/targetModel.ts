@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { dumpTargets } from './blade';
 import { getConfig } from './config';
 import { findPrimaryBladeRoot } from './workspace';
-import { BladeTarget, targetKey } from './types';
+import { BladeTarget, isExternalLibrary, targetKey } from './types';
 
 export interface TargetModelState {
   root?: string;
@@ -71,21 +71,25 @@ export class TargetModel implements vscode.Disposable {
       return;
     }
     this.refreshing = true;
+    let root: string | undefined;
     try {
-      const root = await findPrimaryBladeRoot();
+      root = await findPrimaryBladeRoot();
       if (!root) {
         this.apply({ targets: [], error: undefined });
         return;
       }
       const cfg = getConfig(vscode.Uri.file(root));
       this.output.appendLine(`[blade] dumping targets from ${root} ...`);
-      const targets = await dumpTargets(root, cfg, '//...', token);
+      const dumped = await dumpTargets(root, cfg, '//...', token);
+      const targets = dumped.filter((t) => !isExternalLibrary(t));
       this.output.appendLine(`[blade] loaded ${targets.length} targets`);
       this.apply({ root, targets, error: undefined });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       this.output.appendLine(`[blade] target refresh failed: ${msg}`);
-      this.apply({ root: this.state.root, targets: [], error: msg });
+      // Keep the discovered root so commands and error UI know we *are* in a
+      // Blade workspace — only the `blade` invocation failed.
+      this.apply({ root: root ?? this.state.root, targets: [], error: msg });
     } finally {
       this.refreshing = false;
     }

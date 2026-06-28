@@ -60,6 +60,13 @@ suite('BUILD parser', () => {
     assert.ok(decls.every((d) => d.name !== undefined));
   });
 
+  test('nameAttrRange spans the whole name attribute (both quote styles)', async () => {
+    const doc = await vscode.workspace.openTextDocument({ language: 'blade-build', content: SAMPLE });
+    const decls = parseBuildDocument(doc);
+    assert.strictEqual(doc.getText(decls[0].nameAttrRange), 'name = "foo"');
+    assert.strictEqual(doc.getText(decls[1].nameAttrRange), "name = 'foo_test'");
+  });
+
   test('labelAt detects dependency labels', async () => {
     const doc = await vscode.workspace.openTextDocument({ language: 'blade-build', content: SAMPLE });
     const idx = SAMPLE.indexOf('//common/base:string');

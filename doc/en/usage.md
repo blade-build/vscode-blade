@@ -2,21 +2,36 @@
 
 ## Targets explorer
 
-The **Blade** view in the Activity Bar lists every target in the workspace,
-grouped by package directory. Each target shows its rule type and an icon, and
-exposes inline actions:
+The **Blade** view in the Activity Bar lays the workspace out as a **directory
+tree**, from the `//` root down to each package. Expand/collapse state is
+remembered across sessions, and synthetic external libraries (`#pthread`, …) are
+hidden.
+
+Each **target** shows its rule type and an icon, and exposes inline actions:
 
 - **Build** — build the target.
 - **Run** — for `*_binary` targets (`blade run`).
 - **Test** — for `*_test` targets (`blade test`).
 - **Debug** — for native `cc_binary` / `cc_test` targets.
-- **Reveal in BUILD File** — jump to the target's declaration.
+- **Reveal BUILD File** — open the package's BUILD file.
+
+Each **directory** (and the `//` root) exposes:
+
+- **Build Directory** / **Test Directory** — build or test everything beneath it
+  recursively, via the `//path/...` pattern.
 
 ## Active target & status bar
 
 The status bar shows the active target and **Build / Run / Test / Clean**
 buttons. Selecting a target in the explorer (or via **Blade: Select Active
 Target**) updates it. The selection is remembered per workspace.
+
+## Build profile
+
+A **release / debug** selector sits in the targets view title. It injects
+`-p <profile>` into every build / run / test / debug invocation, defaults to
+`release`, and is remembered per workspace. Use it to switch the whole view
+between optimized and debug builds without editing settings.
 
 ## Tasks
 

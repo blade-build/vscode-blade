@@ -22,6 +22,16 @@ export function targetKey(t: { path: string; name: string }): string {
   return `${t.path}:${t.name}`;
 }
 
+/**
+ * External libraries referenced with a `#`, e.g. system libraries like
+ * `#pthread`/`#m`/`#dl`. Blade synthesizes these rather than reading them
+ * from a BUILD file, so they should not appear as build/run/test targets in
+ * the UI. Any target whose name or package path carries a `#` is external.
+ */
+export function isExternalLibrary(t: BladeTarget): boolean {
+  return t.type === 'system_library' || t.path.includes('#') || t.name.includes('#');
+}
+
 export function isTestable(t: BladeTarget): boolean {
   return t.type.endsWith('_test');
 }

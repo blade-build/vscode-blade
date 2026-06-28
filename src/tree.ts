@@ -4,7 +4,7 @@ import { ActiveTarget } from './activeTarget';
 import { BladeTarget, isDebuggable, isRunnable, isTestable, targetKey, targetLabel } from './types';
 
 type Node =
-  | { kind: 'package'; path: string }
+  | { kind: 'dir'; path: string }
   | { kind: 'target'; target: BladeTarget };
 
 function iconFor(t: BladeTarget): vscode.ThemeIcon {
@@ -34,26 +34,54 @@ function contextValue(t: BladeTarget): string {
   return tags.join('.');
 }
 
+const COLLAPSED_KEY = 'blade.collapsedDirs';
+
 export class BladeTreeProvider implements vscode.TreeDataProvider<Node> {
   private readonly _onDidChange = new vscode.EventEmitter<void>();
   readonly onDidChangeTreeData = this._onDidChange.event;
 
+  // Directory paths the user has collapsed, persisted across sessions. Absence
+  // means expanded (the default), so a fresh workspace starts fully open.
+  private readonly collapsed: Set<string>;
+
   constructor(
     private readonly model: TargetModel,
-    private readonly active: ActiveTarget
+    private readonly active: ActiveTarget,
+    private readonly storage: vscode.Memento
   ) {
+    this.collapsed = new Set(storage.get<string[]>(COLLAPSED_KEY, []));
     model.onDidChange(() => this._onDidChange.fire());
     active.onDidChange(() => this._onDidChange.fire());
   }
 
+  /** Record a dir's expand/collapse state; wired to the TreeView events. */
+  setExpanded(node: Node, expanded: boolean): void {
+    if (node.kind !== 'dir') {
+      return;
+    }
+    const changed = expanded ? this.collapsed.delete(node.path) : !this.collapsed.has(node.path);
+    if (!expanded) {
+      this.collapsed.add(node.path);
+    }
+    if (changed) {
+      void this.storage.update(COLLAPSED_KEY, [...this.collapsed]);
+    }
+  }
+
   getTreeItem(node: Node): vscode.TreeItem {
-    if (node.kind === 'package') {
+    if (node.kind === 'dir') {
+      const segment = node.path.split('/').pop() ?? node.path;
       const item = new vscode.TreeItem(
-        node.path === '' ? '//' : `//${node.path}`,
-        vscode.TreeItemCollapsibleState.Expanded
+        node.path === '' ? '//' : segment,
+        this.collapsed.has(node.path)
+          ? vscode.TreeItemCollapsibleState.Collapsed
+          : vscode.TreeItemCollapsibleState.Expanded
       );
+      item.tooltip = `//${node.path}`;
       item.iconPath = new vscode.ThemeIcon('folder');
-      item.contextValue = 'package';
+      // A directory that itself declares targets is a package; intermediate
+      // directories only group sub-packages.
+      item.contextValue = this.model.inPackage(node.path).length > 0 ? 'package' : 'dir';
       return item;
     }
     const t = node.target;
@@ -76,17 +104,44 @@ export class BladeTreeProvider implements vscode.TreeDataProvider<Node> {
 
   getChildren(node?: Node): Node[] {
     if (!node) {
-      const packages = [...new Set(this.model.targets.map((t) => t.path))].sort();
-      return packages.map((path) => ({ kind: 'package', path }));
+      // Single `//` root so the whole workspace is itself an actionable
+      // (build/test `//...`) node; everything else nests beneath it.
+      return this.model.targets.length > 0 ? [{ kind: 'dir', path: '' }] : [];
     }
-    if (node.kind === 'package') {
-      return this.model
-        .inPackage(node.path)
-        .slice()
-        .sort((a, b) => a.name.localeCompare(b.name))
-        .map((target) => ({ kind: 'target', target }));
+    if (node.kind === 'dir') {
+      return this.childrenOf(node.path);
     }
     return [];
+  }
+
+  /**
+   * Children of a directory: immediate sub-directories that contain packages
+   * (folders first, sorted), then the targets this directory declares as a
+   * package (sorted). Intermediate directories with no BUILD file still appear
+   * so deeper packages remain reachable.
+   */
+  private childrenOf(parent: string): Node[] {
+    const prefix = parent === '' ? '' : `${parent}/`;
+    const segments = new Set<string>();
+    for (const t of this.model.targets) {
+      if (parent !== '' && !t.path.startsWith(prefix)) {
+        continue;
+      }
+      const rest = t.path.slice(prefix.length);
+      if (rest === '') {
+        continue; // target lives directly in `parent`, not a sub-directory
+      }
+      segments.add(rest.split('/')[0]);
+    }
+    const dirs: Node[] = [...segments]
+      .sort((a, b) => a.localeCompare(b))
+      .map((seg) => ({ kind: 'dir', path: prefix + seg }));
+    const targets: Node[] = this.model
+      .inPackage(parent)
+      .slice()
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((target) => ({ kind: 'target', target }));
+    return [...dirs, ...targets];
   }
 
   refresh(): void {

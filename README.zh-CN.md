@@ -7,11 +7,16 @@ Studio Code 扩展。
 
 ## 功能
 
-- **目标浏览器** —— 列出工作区内的所有目标，按包分组，并提供
-  **构建 / 运行 / 测试 / 调试** 的行内操作。
+- **目标浏览器** —— 以**目录树**形式展示工作区内的所有目标，并提供
+  **构建 / 运行 / 测试 / 调试** 的行内操作。将鼠标悬停在目录（或 `//` 根节点）上即可
+  **递归构建 / 测试**该目录（`//path/...`）。目录的展开 / 折叠状态会跨会话记忆；
+  合成的外部库（`#pthread` 等）会被隐藏。
 - **构建、运行、测试、清理** —— 可从状态栏、命令面板或目标浏览器触发，全部通过
   VS Code 的 **Tasks API** 执行：编译错误会出现在“问题”面板中，构建失败时也不会
-  再误运行旧的可执行文件。
+  再误运行旧的可执行文件。可用 `blade.buildArgs` / `testArgs` / `runArgs`
+  为各动作传入额外参数。
+- **构建配置（profile）** —— 目标视图标题栏提供 **release / debug** 选择器，会向每次
+  构建 / 运行 / 测试 / 调试注入 `-p <profile>`（默认 `release`，按工作区记忆）。
 - **BUILD 文件语言支持** —— 语法高亮、目标大纲、对依赖标签
   （`//path:name`、`:name`）的 **跳转到定义**、规则类型 / 属性 / 依赖标签补全、
   悬停信息，以及对无法解析到已知目标的依赖给出告警。
@@ -42,8 +47,10 @@ Studio Code 扩展。
 | `blade.executable` | `blade` | blade 可执行文件路径。 |
 | `blade.jobs` | `0` | 并行任务数（`-j`）；`0` 表示让 blade 自动检测 CPU 数。 |
 | `blade.commandPrefix` | `[]` | 在每条 blade 命令前追加的标记（例如包装脚本）。 |
+| `blade.buildArgs` | `[]` | 传给 `blade build` 的额外选项（如 `["-p", "debug"]`）。 |
+| `blade.testArgs` | `[]` | 传给 `blade test` 的额外选项（如 `["--full-test"]`）。 |
+| `blade.runArgs` | `[]` | 传给 `blade run` 的额外选项（如 `["-p", "release"]`）。 |
 | `blade.environment` | `{}` | blade 任务的额外环境变量。 |
-| `blade.buildBeforeRun` | `true` | 运行目标前先构建。 |
 | `blade.generateCompdbOnRefresh` | `true` | 刷新时重新生成 `compile_commands.json`。 |
 | `blade.recommendClangd` | `true` | 建议安装 clangd 以获得 C/C++ 智能感知。 |
 

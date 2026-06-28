@@ -1,6 +1,7 @@
 import * as os from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
+import { BladeProfile } from './profile';
 import { createBladeTask, executeBladeTask } from './tasks';
 import { BladeTarget, isDebuggable, targetLabel } from './types';
 
@@ -10,14 +11,18 @@ import { BladeTarget, isDebuggable, targetLabel } from './types';
  * Uses the stable `blade-bin` symlink for the program path (it always points at
  * the most recently built output tree, regardless of profile/bits).
  */
-export async function debugTarget(root: string, target: BladeTarget): Promise<void> {
+export async function debugTarget(
+  root: string,
+  target: BladeTarget,
+  profile?: BladeProfile
+): Promise<void> {
   if (!isDebuggable(target)) {
     void vscode.window.showErrorMessage(
       `${targetLabel(target)} (${target.type}) is not a debuggable native target.`
     );
     return;
   }
-  const exitCode = await executeBladeTask(createBladeTask(root, 'build', target));
+  const exitCode = await executeBladeTask(createBladeTask(root, 'build', target, profile));
   if (exitCode !== 0) {
     void vscode.window.showErrorMessage(`Build failed for ${targetLabel(target)}; not launching debugger.`);
     return;

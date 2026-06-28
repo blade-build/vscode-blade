@@ -4,8 +4,10 @@ export interface BladeConfig {
   executable: string;
   jobs: number;
   commandPrefix: string[];
+  buildArgs: string[];
+  testArgs: string[];
+  runArgs: string[];
   environment: Record<string, string>;
-  buildBeforeRun: boolean;
   generateCompdbOnRefresh: boolean;
   recommendClangd: boolean;
 }
@@ -16,8 +18,10 @@ export function getConfig(scope?: vscode.Uri): BladeConfig {
     executable: c.get<string>('executable', 'blade'),
     jobs: c.get<number>('jobs', 0),
     commandPrefix: c.get<string[]>('commandPrefix', []),
+    buildArgs: c.get<string[]>('buildArgs', []),
+    testArgs: c.get<string[]>('testArgs', []),
+    runArgs: c.get<string[]>('runArgs', []),
     environment: c.get<Record<string, string>>('environment', {}),
-    buildBeforeRun: c.get<boolean>('buildBeforeRun', true),
     generateCompdbOnRefresh: c.get<boolean>('generateCompdbOnRefresh', true),
     recommendClangd: c.get<boolean>('recommendClangd', true)
   };

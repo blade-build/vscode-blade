@@ -71,10 +71,25 @@
         "category": "Blade"
       },
       {
+        "command": "blade.selectProfile",
+        "title": "Select Build Profile",
+        "category": "Blade"
+      },
+      {
+        "command": "blade.selectProfileRelease",
+        "title": "Profile: release",
+        "category": "Blade"
+      },
+      {
+        "command": "blade.selectProfileDebug",
+        "title": "Profile: debug",
+        "category": "Blade"
+      },
+      {
         "command": "blade.build",
         "title": "Build Active Target",
         "category": "Blade",
-        "icon": "$(gear)"
+        "icon": "$(tools)"
       },
       {
         "command": "blade.run",
@@ -103,7 +118,19 @@
         "command": "blade.buildTarget",
         "title": "Build",
         "category": "Blade",
-        "icon": "$(gear)"
+        "icon": "$(tools)"
+      },
+      {
+        "command": "blade.buildPackage",
+        "title": "Build Directory",
+        "category": "Blade",
+        "icon": "$(tools)"
+      },
+      {
+        "command": "blade.testPackage",
+        "title": "Test Directory",
+        "category": "Blade",
+        "icon": "$(beaker)"
       },
       {
         "command": "blade.runTarget",
@@ -124,8 +151,8 @@
         "icon": "$(debug-alt)"
       },
       {
-        "command": "blade.revealTarget",
-        "title": "Reveal in BUILD File",
+        "command": "blade.revealBuildFile",
+        "title": "Reveal BUILD File",
         "category": "Blade",
         "icon": "$(go-to-file)"
       }
@@ -152,18 +179,76 @@
     "viewsWelcome": [
       {
         "view": "bladeTargets",
+        "when": "blade.viewState == loading",
+        "contents": "Loading Blade targets…"
+      },
+      {
+        "view": "bladeTargets",
+        "when": "blade.viewState == error",
+        "contents": "Blade failed to run. Check that the blade executable path is configured correctly.\n[Configure Blade Path](command:workbench.action.openSettings?%5B%22blade.executable%22%5D)\n[Retry](command:blade.refreshTargets)"
+      },
+      {
+        "view": "bladeTargets",
+        "when": "blade.viewState == noWorkspace",
         "contents": "No Blade workspace detected (no BLADE_ROOT found).\n[Refresh](command:blade.refreshTargets)"
+      },
+      {
+        "view": "bladeTargets",
+        "when": "blade.viewState == empty",
+        "contents": "No Blade targets found in this workspace.\n[Refresh](command:blade.refreshTargets)"
       }
     ],
     "menus": {
+      "commandPalette": [
+        {
+          "command": "blade.buildPackage",
+          "when": "false"
+        },
+        {
+          "command": "blade.testPackage",
+          "when": "false"
+        },
+        {
+          "command": "blade.selectProfileRelease",
+          "when": "false"
+        },
+        {
+          "command": "blade.selectProfileDebug",
+          "when": "false"
+        },
+        {
+          "command": "blade.revealBuildFile",
+          "when": "false"
+        }
+      ],
       "view/title": [
+        {
+          "command": "blade.selectProfileRelease",
+          "when": "view == bladeTargets && blade.profile == release",
+          "group": "navigation@0"
+        },
+        {
+          "command": "blade.selectProfileDebug",
+          "when": "view == bladeTargets && blade.profile == debug",
+          "group": "navigation@0"
+        },
         {
           "command": "blade.refreshTargets",
           "when": "view == bladeTargets",
-          "group": "navigation"
+          "group": "navigation@1"
         }
       ],
       "view/item/context": [
+        {
+          "command": "blade.buildPackage",
+          "when": "view == bladeTargets && viewItem =~ /^(package|dir)$/",
+          "group": "inline@1"
+        },
+        {
+          "command": "blade.testPackage",
+          "when": "view == bladeTargets && viewItem =~ /^(package|dir)$/",
+          "group": "inline@2"
+        },
         {
           "command": "blade.buildTarget",
           "when": "view == bladeTargets && viewItem =~ /^target/",
@@ -185,8 +270,8 @@
           "group": "inline@3"
         },
         {
-          "command": "blade.revealTarget",
-          "when": "view == bladeTargets && viewItem =~ /^target/",
+          "command": "blade.revealBuildFile",
+          "when": "view == bladeTargets && viewItem == package",
           "group": "navigation@1"
         }
       ]
@@ -213,6 +298,30 @@
           "default": [],
           "markdownDescription": "Tokens prepended to every blade command (e.g. `bear`, `--`, or a wrapper script)."
         },
+        "blade.buildArgs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "markdownDescription": "Extra options passed to `blade build` (e.g. `[\"-p\", \"debug\"]`, `[\"--verbose\"]`). `blade run` builds internally — use `blade.runArgs` to affect its build."
+        },
+        "blade.testArgs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "markdownDescription": "Extra options passed to `blade test` (e.g. `[\"--full-test\"]`, `[\"--coverage\"]`)."
+        },
+        "blade.runArgs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "markdownDescription": "Extra options passed to `blade run` (e.g. `[\"-p\", \"release\"]`)."
+        },
         "blade.environment": {
           "type": "object",
           "additionalProperties": {
@@ -220,11 +329,6 @@
           },
           "default": {},
           "description": "Extra environment variables for blade tasks."
-        },
-        "blade.buildBeforeRun": {
-          "type": "boolean",
-          "default": true,
-          "description": "Build a target before running it (blade run already builds; disable to skip the explicit build task)."
         },
         "blade.generateCompdbOnRefresh": {
           "type": "boolean",
