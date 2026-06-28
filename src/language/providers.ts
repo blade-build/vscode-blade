@@ -56,7 +56,7 @@ class HoverProvider implements vscode.HoverProvider {
   constructor(private readonly model: TargetModel) {}
   provideHover(doc: vscode.TextDocument, pos: vscode.Position): vscode.Hover | undefined {
     const hit = labelAt(doc, pos);
-    const root = this.model.root;
+    const root = this.model.rootFor(doc.fileName);
     if (!hit || !root) {
       return undefined;
     }
@@ -64,7 +64,7 @@ class HoverProvider implements vscode.HoverProvider {
     if (!resolved) {
       return undefined;
     }
-    const t = this.model.find(resolved.key);
+    const t = this.model.find(root, resolved.key);
     if (!t) {
       return undefined;
     }
@@ -89,11 +89,15 @@ class CompletionProvider implements vscode.CompletionItemProvider {
     // Inside a string within a deps-like list: complete target labels.
     const inString = (prefix.match(/"/g)?.length ?? 0) % 2 === 1 || (prefix.match(/'/g)?.length ?? 0) % 2 === 1;
     if (inString && this.nearDepsAttr(doc, pos)) {
-      return this.model.targets.map((t) => {
-        const item = new vscode.CompletionItem(targetLabel(t), vscode.CompletionItemKind.Reference);
-        item.detail = t.type;
-        return item;
-      });
+      // Only labels from the same workspace are valid dependencies here.
+      const root = this.model.rootFor(doc.fileName);
+      return this.model.targets
+        .filter((t) => !root || t.root === root)
+        .map((t) => {
+          const item = new vscode.CompletionItem(targetLabel(t), vscode.CompletionItemKind.Reference);
+          item.detail = t.type;
+          return item;
+        });
     }
 
     // Statement start: complete rule types.

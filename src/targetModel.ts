@@ -1,13 +1,15 @@
 import * as vscode from 'vscode';
 import { dumpTargets } from './blade';
 import { getConfig } from './config';
-import { findPrimaryBladeRoot } from './workspace';
-import { BladeTarget, isExternalLibrary, targetKey } from './types';
+import { findBladeRoots, rootForPath } from './workspace';
+import { BladeTarget, isExternalLibrary, qualifiedKey, targetKey } from './types';
 
 export interface TargetModelState {
-  root?: string;
+  roots: string[];
   targets: BladeTarget[];
   error?: string;
+  /** Per-root `blade dump` failure messages, keyed by absolute root. */
+  rootErrors: Map<string, string>;
 }
 
 /**
@@ -16,7 +18,7 @@ export interface TargetModelState {
  * explicitly (command) or automatically when a BUILD/BLADE_ROOT file changes.
  */
 export class TargetModel implements vscode.Disposable {
-  private state: TargetModelState = { targets: [] };
+  private state: TargetModelState = { roots: [], targets: [], rootErrors: new Map() };
   private byKey = new Map<string, BladeTarget>();
   private byPath = new Map<string, BladeTarget[]>();
   private watcher?: vscode.FileSystemWatcher;
@@ -28,8 +30,9 @@ export class TargetModel implements vscode.Disposable {
 
   constructor(private readonly output: vscode.OutputChannel) {}
 
-  get root(): string | undefined {
-    return this.state.root;
+  /** All discovered BLADE_ROOT directories (absolute paths). */
+  get roots(): readonly string[] {
+    return this.state.roots;
   }
 
   get targets(): readonly BladeTarget[] {
@@ -40,14 +43,29 @@ export class TargetModel implements vscode.Disposable {
     return this.state.error;
   }
 
-  /** Look up a target by its `path:name` key. */
-  find(key: string): BladeTarget | undefined {
-    return this.byKey.get(key);
+  /** The `blade dump` failure for a specific root, if it failed to load. */
+  rootError(root: string): string | undefined {
+    return this.state.rootErrors.get(root);
   }
 
-  /** All targets declared in a package directory. */
-  inPackage(pkgPath: string): BladeTarget[] {
-    return this.byPath.get(pkgPath) ?? [];
+  /** The BLADE_ROOT owning a file path, for per-document language features. */
+  rootFor(fsPath: string): string | undefined {
+    return rootForPath(this.state.roots, fsPath);
+  }
+
+  /** Look up a target by its root and `path:name` key. */
+  find(root: string, key: string): BladeTarget | undefined {
+    return this.byKey.get(qualifiedKey(root, key));
+  }
+
+  /** Look up a target by its already-qualified key (root + `path:name`). */
+  findQualified(qkey: string): BladeTarget | undefined {
+    return this.byKey.get(qkey);
+  }
+
+  /** All targets declared in a package directory of a given root. */
+  inPackage(root: string, pkgPath: string): BladeTarget[] {
+    return this.byPath.get(qualifiedKey(root, pkgPath)) ?? [];
   }
 
   /** Set up file watching; call once after construction. */
@@ -71,25 +89,44 @@ export class TargetModel implements vscode.Disposable {
       return;
     }
     this.refreshing = true;
-    let root: string | undefined;
     try {
-      root = await findPrimaryBladeRoot();
-      if (!root) {
-        this.apply({ targets: [], error: undefined });
+      const roots = await findBladeRoots();
+      if (roots.length === 0) {
+        this.apply({ roots: [], targets: [], error: undefined, rootErrors: new Map() });
         return;
       }
-      const cfg = getConfig(vscode.Uri.file(root));
-      this.output.appendLine(`[blade] dumping targets from ${root} ...`);
-      const dumped = await dumpTargets(root, cfg, '//...', token);
-      const targets = dumped.filter((t) => !isExternalLibrary(t));
-      this.output.appendLine(`[blade] loaded ${targets.length} targets`);
-      this.apply({ root, targets, error: undefined });
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      this.output.appendLine(`[blade] target refresh failed: ${msg}`);
-      // Keep the discovered root so commands and error UI know we *are* in a
-      // Blade workspace — only the `blade` invocation failed.
-      this.apply({ root: root ?? this.state.root, targets: [], error: msg });
+      // Dump each workspace independently; one failing root must not blank the
+      // others. Targets are tagged with their root so the rest of the
+      // extension can route tasks/navigation back to the right `cwd`. Per-root
+      // failures are kept so the tree can show *which* root failed rather than
+      // silently dropping it.
+      const targets: BladeTarget[] = [];
+      const rootErrors = new Map<string, string>();
+      for (const root of roots) {
+        try {
+          const cfg = getConfig(vscode.Uri.file(root));
+          this.output.appendLine(`[blade] dumping targets from ${root} ...`);
+          const dumped = await dumpTargets(root, cfg, '//...', token);
+          for (const t of dumped) {
+            if (!isExternalLibrary(t)) {
+              t.root = root;
+              targets.push(t);
+            }
+          }
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          this.output.appendLine(`[blade] dump failed for ${root}: ${msg}`);
+          rootErrors.set(root, msg);
+        }
+      }
+      this.output.appendLine(`[blade] loaded ${targets.length} targets from ${roots.length} root(s)`);
+      // Surface a blocking error only when nothing loaded at all; partial
+      // success keeps the working roots visible (failed ones show inline).
+      const error =
+        targets.length === 0 && rootErrors.size > 0
+          ? [...rootErrors].map(([r, m]) => `${r}: ${m}`).join('\n')
+          : undefined;
+      this.apply({ roots, targets, error, rootErrors });
     } finally {
       this.refreshing = false;
     }
@@ -100,12 +137,14 @@ export class TargetModel implements vscode.Disposable {
     this.byKey.clear();
     this.byPath.clear();
     for (const t of state.targets) {
-      this.byKey.set(targetKey(t), t);
-      const list = this.byPath.get(t.path);
+      const root = t.root ?? '';
+      this.byKey.set(qualifiedKey(root, targetKey(t)), t);
+      const pkgKey = qualifiedKey(root, t.path);
+      const list = this.byPath.get(pkgKey);
       if (list) {
         list.push(t);
       } else {
-        this.byPath.set(t.path, [t]);
+        this.byPath.set(pkgKey, [t]);
       }
     }
     this._onDidChange.fire(state);

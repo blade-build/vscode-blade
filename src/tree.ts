@@ -1,10 +1,19 @@
+import * as path from 'path';
 import * as vscode from 'vscode';
 import { TargetModel } from './targetModel';
 import { ActiveTarget } from './activeTarget';
-import { BladeTarget, isDebuggable, isRunnable, isTestable, targetKey, targetLabel } from './types';
+import {
+  BladeTarget,
+  isDebuggable,
+  isRunnable,
+  isTestable,
+  qualifiedKey,
+  targetKey,
+  targetLabel
+} from './types';
 
 type Node =
-  | { kind: 'dir'; path: string }
+  | { kind: 'dir'; root: string; path: string }
   | { kind: 'target'; target: BladeTarget };
 
 /**
@@ -87,9 +96,10 @@ export class BladeTreeProvider implements vscode.TreeDataProvider<Node> {
     if (node.kind !== 'dir') {
       return;
     }
-    const changed = expanded ? this.collapsed.delete(node.path) : !this.collapsed.has(node.path);
+    const key = qualifiedKey(node.root, node.path);
+    const changed = expanded ? this.collapsed.delete(key) : !this.collapsed.has(key);
     if (!expanded) {
-      this.collapsed.add(node.path);
+      this.collapsed.add(key);
     }
     if (changed) {
       void this.storage.update(COLLAPSED_KEY, [...this.collapsed]);
@@ -98,18 +108,44 @@ export class BladeTreeProvider implements vscode.TreeDataProvider<Node> {
 
   getTreeItem(node: Node): vscode.TreeItem {
     if (node.kind === 'dir') {
-      const segment = node.path.split('/').pop() ?? node.path;
+      const multiRoot = this.model.roots.length > 1;
+      const isRootNode = node.path === '';
+      // The per-root top node is labelled by the workspace folder name when
+      // several are open; with a single root it is just `//`.
+      const label = isRootNode
+        ? multiRoot
+          ? path.basename(node.root)
+          : '//'
+        : node.path.split('/').pop()!;
+      // Only a root node can be childless (empty/failed workspace); a sub-dir
+      // node exists precisely because a package lives beneath it.
+      const hasChildren = !isRootNode || this.childrenOf(node.root, node.path).length > 0;
       const item = new vscode.TreeItem(
-        node.path === '' ? '//' : segment,
-        this.collapsed.has(node.path)
-          ? vscode.TreeItemCollapsibleState.Collapsed
-          : vscode.TreeItemCollapsibleState.Expanded
+        label,
+        hasChildren
+          ? this.collapsed.has(qualifiedKey(node.root, node.path))
+            ? vscode.TreeItemCollapsibleState.Collapsed
+            : vscode.TreeItemCollapsibleState.Expanded
+          : vscode.TreeItemCollapsibleState.None
       );
-      item.tooltip = `//${node.path}`;
-      item.iconPath = new vscode.ThemeIcon('folder');
-      // A directory that itself declares targets is a package; intermediate
-      // directories only group sub-packages.
-      item.contextValue = this.model.inPackage(node.path).length > 0 ? 'package' : 'dir';
+      item.tooltip = isRootNode ? node.root : `${node.root}\n//${node.path}`;
+      item.iconPath = new vscode.ThemeIcon(isRootNode && multiRoot ? 'root-folder' : 'folder');
+      item.contextValue = this.model.inPackage(node.root, node.path).length > 0 ? 'package' : 'dir';
+      // Surface why a discovered root shows nothing: a `blade dump` failure, or
+      // a workspace that simply declares no targets.
+      if (isRootNode) {
+        const err = this.model.rootError(node.root);
+        if (err) {
+          item.description = 'blade failed';
+          item.tooltip = `${node.root}\n\n${err}`;
+          item.iconPath = new vscode.ThemeIcon(
+            'error',
+            new vscode.ThemeColor('list.errorForeground')
+          );
+        } else if (!hasChildren) {
+          item.description = 'no targets';
+        }
+      }
       return item;
     }
     const t = node.target;
@@ -123,8 +159,8 @@ export class BladeTreeProvider implements vscode.TreeDataProvider<Node> {
       title: 'Select Target',
       arguments: [t]
     };
-    const activeKey = this.active.get();
-    if (activeKey && targetKey(activeKey) === targetKey(t)) {
+    const active = this.active.get();
+    if (active && qualifiedKey(active.root ?? '', targetKey(active)) === qualifiedKey(t.root ?? '', targetKey(t))) {
       item.description = `${t.type}  ●`;
     }
     return item;
@@ -132,12 +168,15 @@ export class BladeTreeProvider implements vscode.TreeDataProvider<Node> {
 
   getChildren(node?: Node): Node[] {
     if (!node) {
-      // Single `//` root so the whole workspace is itself an actionable
-      // (build/test `//...`) node; everything else nests beneath it.
-      return this.model.targets.length > 0 ? [{ kind: 'dir', path: '' }] : [];
+      // One top node per discovered workspace, so each `//` root is itself an
+      // actionable (build/test `//...`) node. Failed or empty roots are kept
+      // (annotated in getTreeItem) rather than hidden, so a misconfigured
+      // workspace is visible instead of silently missing. With a single root
+      // this is the lone `//` node.
+      return this.model.roots.map((root) => ({ kind: 'dir', root, path: '' }));
     }
     if (node.kind === 'dir') {
-      return this.childrenOf(node.path);
+      return this.childrenOf(node.root, node.path);
     }
     return [];
   }
@@ -148,13 +187,13 @@ export class BladeTreeProvider implements vscode.TreeDataProvider<Node> {
    * package (sorted). Intermediate directories with no BUILD file still appear
    * so deeper packages remain reachable.
    */
-  private childrenOf(parent: string): Node[] {
+  private childrenOf(root: string, parent: string): Node[] {
     const dirs: Node[] = subdirectories(
-      this.model.targets.map((t) => t.path),
+      this.model.targets.filter((t) => t.root === root).map((t) => t.path),
       parent
-    ).map((path) => ({ kind: 'dir', path }));
+    ).map((path) => ({ kind: 'dir', root, path }));
     const targets: Node[] = this.model
-      .inPackage(parent)
+      .inPackage(root, parent)
       .slice()
       .sort((a, b) => a.name.localeCompare(b.name))
       .map((target) => ({ kind: 'target', target }));

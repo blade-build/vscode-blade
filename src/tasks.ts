@@ -13,6 +13,7 @@ interface BladeTaskDefinition extends vscode.TaskDefinition {
   action: BladeAction;
   target?: string;
   profile?: BladeProfile;
+  root?: string;
 }
 
 /** The full blade argument vector for an action (exported for testing). */
@@ -68,7 +69,7 @@ export function createBladeTask(
   const cfg = getConfig(vscode.Uri.file(root));
   const label = typeof scope === 'string' ? scope : scope ? targetLabel(scope) : undefined;
   const args = bladeArgsFor(action, label, cfg, profile);
-  const definition: BladeTaskDefinition = { type: TASK_TYPE, action, target: label, profile };
+  const definition: BladeTaskDefinition = { type: TASK_TYPE, action, target: label, profile, root };
   const name = label ? `${action} ${label}` : action;
   const task = new vscode.Task(
     definition,
@@ -124,13 +125,13 @@ export class BladeTaskProvider implements vscode.TaskProvider {
   ) {}
 
   provideTasks(): vscode.Task[] {
-    const root = this.model.root;
-    if (!root) {
-      return [];
-    }
     const p = this.profile();
-    const tasks: vscode.Task[] = [createBladeTask(root, 'clean')];
+    const tasks: vscode.Task[] = this.model.roots.map((root) => createBladeTask(root, 'clean'));
     for (const target of this.model.targets) {
+      const root = target.root;
+      if (!root) {
+        continue;
+      }
       tasks.push(createBladeTask(root, 'build', target, p));
       if (isTestable(target)) {
         tasks.push(createBladeTask(root, 'test', target, p));
@@ -141,11 +142,13 @@ export class BladeTaskProvider implements vscode.TaskProvider {
 
   resolveTask(task: vscode.Task): vscode.Task | undefined {
     const def = task.definition as BladeTaskDefinition;
-    const root = this.model.root;
+    const root = def.root ?? this.model.roots[0];
     if (!root || def.type !== TASK_TYPE) {
       return undefined;
     }
-    const target = def.target ? this.model.find(def.target.replace(/^\/\//, '')) : undefined;
+    const target = def.target
+      ? this.model.find(root, def.target.replace(/^\/\//, ''))
+      : undefined;
     return createBladeTask(root, def.action, target, def.profile ?? this.profile());
   }
 }

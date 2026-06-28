@@ -55,7 +55,13 @@ export function activate(context: vscode.ExtensionContext): void {
   setViewState('loading');
   model.onDidChange((state) => {
     setViewState(
-      state.error ? 'error' : !state.root ? 'noWorkspace' : state.targets.length === 0 ? 'empty' : 'ready'
+      state.error
+        ? 'error'
+        : state.roots.length === 0
+          ? 'noWorkspace'
+          : state.targets.length === 0
+            ? 'empty'
+            : 'ready'
     );
   });
 
@@ -69,12 +75,12 @@ export function activate(context: vscode.ExtensionContext): void {
 
   // --- helpers -------------------------------------------------------------
 
-  async function requireRoot(): Promise<string | undefined> {
-    if (model.root) {
-      return model.root;
+  async function requireRoots(): Promise<readonly string[]> {
+    if (model.roots.length > 0) {
+      return model.roots;
     }
     await model.refresh();
-    if (!model.root) {
+    if (model.roots.length === 0) {
       if (model.error) {
         void vscode.window
           .showErrorMessage(`Blade failed to run: ${model.error}`, 'Open Settings')
@@ -93,14 +99,23 @@ export function activate(context: vscode.ExtensionContext): void {
           });
       }
     }
-    return model.root;
+    return model.roots;
   }
+
+  // When several workspaces are open, disambiguate the quick pick by folder.
+  const rootTag = (t: BladeTarget) =>
+    model.roots.length > 1 && t.root ? ` · ${path.basename(t.root)}` : '';
 
   async function pickTarget(): Promise<BladeTarget | undefined> {
     const items = model.targets
       .slice()
       .sort((a, b) => targetLabel(a).localeCompare(targetLabel(b)))
-      .map((t) => ({ label: t.name, description: t.type, detail: targetLabel(t), target: t }));
+      .map((t) => ({
+        label: t.name,
+        description: `${t.type}${rootTag(t)}`,
+        detail: targetLabel(t),
+        target: t
+      }));
     const picked = await vscode.window.showQuickPick(items, {
       placeHolder: 'Select a Blade target',
       matchOnDescription: true,
@@ -125,31 +140,34 @@ export function activate(context: vscode.ExtensionContext): void {
     return picked;
   }
 
-  async function runAction(action: BladeAction, scope?: BladeTarget | string): Promise<void> {
-    const root = await requireRoot();
-    if (!root) {
-      return;
-    }
+  async function runAction(
+    action: BladeAction,
+    root: string,
+    scope?: BladeTarget | string
+  ): Promise<void> {
     await executeBladeTask(createBladeTask(root, action, scope, profile.value));
   }
 
-  // Tree dir nodes pass `{ kind: 'dir', path }`; build/test them recursively
-  // via the `//path/...` package pattern.
-  function asDirScope(arg: unknown): string | undefined {
-    if (arg && typeof arg === 'object') {
-      const obj = arg as { kind?: string; path?: string };
-      if (obj.kind === 'dir' && typeof obj.path === 'string') {
-        return dirScope(obj.path);
-      }
+  // Status-bar build/run/test act on the active target (in its own root); with
+  // no active target they apply workspace-wide across every root.
+  async function runActiveAction(action: BladeAction): Promise<void> {
+    const t = active.get();
+    if (t?.root) {
+      await runAction(action, t.root, t);
+      return;
     }
-    return undefined;
+    for (const root of await requireRoots()) {
+      await runAction(action, root);
+    }
   }
 
-  function asDirPath(arg: unknown): string | undefined {
+  // Tree dir nodes pass `{ kind: 'dir', root, path }`; build/test them
+  // recursively via the `//path/...` package pattern in their own root.
+  function asDirNode(arg: unknown): { root: string; path: string } | undefined {
     if (arg && typeof arg === 'object') {
-      const obj = arg as { kind?: string; path?: string };
-      if (obj.kind === 'dir' && typeof obj.path === 'string') {
-        return obj.path;
+      const obj = arg as { kind?: string; root?: string; path?: string };
+      if (obj.kind === 'dir' && typeof obj.root === 'string' && typeof obj.path === 'string') {
+        return { root: obj.root, path: obj.path };
       }
     }
     return undefined;
@@ -157,7 +175,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   // Open a target's BUILD file and select its `name = '...'` declaration.
   async function revealTargetInBuild(t: BladeTarget): Promise<void> {
-    const root = model.root;
+    const root = t.root;
     if (!root) {
       return;
     }
@@ -178,10 +196,12 @@ export function activate(context: vscode.ExtensionContext): void {
         { location: { viewId: 'bladeTargets' }, title: 'Refreshing Blade targets' },
         () => model.refresh()
       );
-      if (model.root && getConfig(vscode.Uri.file(model.root)).generateCompdbOnRefresh) {
-        await runGenerateCompdb(model.root).catch((e) =>
-          output.appendLine(`[blade] compdb generation failed: ${e}`)
-        );
+      for (const root of model.roots) {
+        if (getConfig(vscode.Uri.file(root)).generateCompdbOnRefresh) {
+          await runGenerateCompdb(root).catch((e) =>
+            output.appendLine(`[blade] compdb generation failed for ${root}: ${e}`)
+          );
+        }
       }
     }),
 
@@ -224,68 +244,69 @@ export function activate(context: vscode.ExtensionContext): void {
         })
     ) as vscode.Disposable[]),
 
-    vscode.commands.registerCommand('blade.build', () => runAction('build', active.get())),
-    vscode.commands.registerCommand('blade.run', () => runAction('run', active.get())),
-    vscode.commands.registerCommand('blade.test', () => runAction('test', active.get())),
-    vscode.commands.registerCommand('blade.clean', () => runAction('clean')),
+    vscode.commands.registerCommand('blade.build', () => runActiveAction('build')),
+    vscode.commands.registerCommand('blade.run', () => runActiveAction('run')),
+    vscode.commands.registerCommand('blade.test', () => runActiveAction('test')),
+    vscode.commands.registerCommand('blade.clean', async () => {
+      for (const root of await requireRoots()) {
+        await runAction('clean', root);
+      }
+    }),
 
     vscode.commands.registerCommand('blade.buildTarget', async (arg) => {
       const t = await resolveActionTarget(arg);
-      if (t) {
-        await runAction('build', t);
+      if (t?.root) {
+        await runAction('build', t.root, t);
       }
     }),
     vscode.commands.registerCommand('blade.runTarget', async (arg) => {
       const t = await resolveActionTarget(arg);
-      if (t) {
-        await runAction('run', t);
+      if (t?.root) {
+        await runAction('run', t.root, t);
       }
     }),
     vscode.commands.registerCommand('blade.testTarget', async (arg) => {
       const t = await resolveActionTarget(arg);
-      if (t && isTestable(t)) {
-        await runAction('test', t);
+      if (t?.root && isTestable(t)) {
+        await runAction('test', t.root, t);
       }
     }),
     vscode.commands.registerCommand('blade.buildPackage', async (arg) => {
-      const scope = asDirScope(arg);
-      if (scope) {
-        await runAction('build', scope);
+      const dir = asDirNode(arg);
+      if (dir) {
+        await runAction('build', dir.root, dirScope(dir.path));
       }
     }),
     vscode.commands.registerCommand('blade.testPackage', async (arg) => {
-      const scope = asDirScope(arg);
-      if (scope) {
-        await runAction('test', scope);
+      const dir = asDirNode(arg);
+      if (dir) {
+        await runAction('test', dir.root, dirScope(dir.path));
       }
     }),
     vscode.commands.registerCommand('blade.debugTarget', async (arg) => {
-      const root = await requireRoot();
       const t = await resolveActionTarget(arg);
-      if (root && t) {
-        await debugTarget(root, t, profile.value);
+      if (t?.root) {
+        await debugTarget(t.root, t, profile.value);
       }
     }),
 
     // Right-click a directory to open its BUILD file.
     vscode.commands.registerCommand('blade.revealBuildFile', async (arg) => {
-      const root = model.root;
-      const dir = asDirPath(arg);
-      if (!root || dir === undefined) {
+      const dir = asDirNode(arg);
+      if (!dir) {
         return;
       }
-      const uri = vscode.Uri.file(path.join(root, dir, 'BUILD'));
+      const uri = vscode.Uri.file(path.join(dir.root, dir.path, 'BUILD'));
       try {
         const doc = await vscode.workspace.openTextDocument(uri);
         await vscode.window.showTextDocument(doc);
       } catch {
-        void vscode.window.showErrorMessage(`No BUILD file at //${dir}.`);
+        void vscode.window.showErrorMessage(`No BUILD file at //${dir.path}.`);
       }
     }),
 
     vscode.commands.registerCommand('blade.generateCompdb', async () => {
-      const root = await requireRoot();
-      if (root) {
+      for (const root of await requireRoots()) {
         await runGenerateCompdb(root);
       }
     })

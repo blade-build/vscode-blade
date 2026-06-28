@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { TargetModel } from './targetModel';
-import { BladeTarget } from './types';
+import { BladeTarget, qualifiedKey, targetKey } from './types';
 
 const STATE_KEY = 'blade.activeTarget';
 
@@ -17,7 +17,7 @@ export class ActiveTarget implements vscode.Disposable {
     this.key = context.workspaceState.get<string>(STATE_KEY);
     // Drop the selection if the target disappeared after a refresh.
     model.onDidChange(() => {
-      if (this.key && !model.find(this.key)) {
+      if (this.key && !model.findQualified(this.key)) {
         void this.set(undefined);
       } else {
         this._onDidChange.fire(this.get());
@@ -26,14 +26,16 @@ export class ActiveTarget implements vscode.Disposable {
   }
 
   get(): BladeTarget | undefined {
-    return this.key ? this.model.find(this.key) : undefined;
+    return this.key ? this.model.findQualified(this.key) : undefined;
   }
 
   async set(target: BladeTarget | string | undefined): Promise<void> {
+    // Persist a root-qualified key so the selection is unambiguous across
+    // multiple open workspaces.
     this.key =
       typeof target === 'string' || target === undefined
         ? target
-        : `${target.path}:${target.name}`;
+        : qualifiedKey(target.root ?? '', targetKey(target));
     await this.context.workspaceState.update(STATE_KEY, this.key);
     this._onDidChange.fire(this.get());
   }

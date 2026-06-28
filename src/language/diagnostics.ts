@@ -47,7 +47,7 @@ export class DepDiagnostics implements vscode.Disposable {
     if (doc.languageId !== 'blade-build') {
       return;
     }
-    const root = this.model.root;
+    const root = this.model.rootFor(doc.fileName);
     if (!root || this.model.error || this.model.targets.length === 0) {
       this.collection.delete(doc.uri);
       return;
@@ -59,7 +59,7 @@ export class DepDiagnostics implements vscode.Disposable {
     while ((m = ABS_LABEL.exec(text)) !== null) {
       const label = m[2];
       const resolved = resolveLabel(root, doc, label);
-      if (!resolved || this.model.find(resolved.key)) {
+      if (!resolved || this.model.find(root, resolved.key)) {
         continue;
       }
       const start = doc.positionAt(m.index + 1);

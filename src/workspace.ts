@@ -52,3 +52,21 @@ export async function findBladeRoots(): Promise<string[]> {
 export async function findPrimaryBladeRoot(): Promise<string | undefined> {
   return (await findBladeRoots())[0];
 }
+
+/**
+ * The Blade root that owns `fsPath` — the longest `roots` entry that is the
+ * path itself or an ancestor directory of it. Used to attribute a BUILD file or
+ * target to the correct workspace when several are open. Pure; exported for
+ * testing.
+ */
+export function rootForPath(roots: readonly string[], fsPath: string): string | undefined {
+  let best: string | undefined;
+  for (const r of roots) {
+    if (fsPath === r || fsPath.startsWith(r.endsWith(path.sep) ? r : r + path.sep)) {
+      if (!best || r.length > best.length) {
+        best = r;
+      }
+    }
+  }
+  return best;
+}

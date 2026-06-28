@@ -19,6 +19,9 @@ build system.
 - **Build profile** — a **release / debug** selector in the targets view title
   injects `-p <profile>` into every build / run / test / debug (default
   `release`, remembered per workspace).
+- **Multi-root** — every `BLADE_ROOT` in the window is discovered and shown as
+  its own top-level node; targets, tasks, navigation and diagnostics are each
+  routed to the workspace that owns them.
 - **BUILD-file language support** — syntax highlighting, an outline of targets,
   **go-to-definition** on dependency labels (`//path:name`, `:name`),
   completion of rule types / attributes / dependency labels, hover, and warnings

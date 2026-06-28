@@ -13,6 +13,8 @@ import { resolveLabel } from '../language/resolve';
 import { bladeArgsFor } from '../tasks';
 import { dirScope, subdirectories } from '../tree';
 import { BladeConfig } from '../config';
+import { rootForPath } from '../workspace';
+import { qualifiedKey } from '../types';
 
 function fakeTarget(type: string, path: string, name: string) {
   return { type, path, name, srcs: [], deps: [], visibility: [], tags: [] };
@@ -184,5 +186,34 @@ suite('directory tree hierarchy', () => {
   test('dirScope builds recursive blade patterns', () => {
     assert.strictEqual(dirScope(''), '//...');
     assert.strictEqual(dirScope('common/base'), '//common/base/...');
+  });
+});
+
+suite('multi-root', () => {
+  const roots = ['/home/a/proj1', '/home/a/proj1/vendor', '/home/a/proj2'];
+
+  test('rootForPath picks the longest ancestor root', () => {
+    // A file under proj1 resolves to proj1...
+    assert.strictEqual(rootForPath(roots, '/home/a/proj1/src/BUILD'), '/home/a/proj1');
+    // ...but a file under the nested vendor root resolves to vendor, not proj1.
+    assert.strictEqual(
+      rootForPath(roots, '/home/a/proj1/vendor/lib/BUILD'),
+      '/home/a/proj1/vendor'
+    );
+    assert.strictEqual(rootForPath(roots, '/home/a/proj2/BUILD'), '/home/a/proj2');
+  });
+
+  test('rootForPath returns undefined outside every root', () => {
+    assert.strictEqual(rootForPath(roots, '/home/a/other/BUILD'), undefined);
+    // A sibling whose name merely shares a prefix must not match.
+    assert.strictEqual(rootForPath(roots, '/home/a/proj1-extra/BUILD'), undefined);
+  });
+
+  test('qualifiedKey disambiguates equal keys across roots', () => {
+    assert.notStrictEqual(
+      qualifiedKey('/root/a', 'common:base'),
+      qualifiedKey('/root/b', 'common:base')
+    );
+    assert.strictEqual(qualifiedKey('/root/a', 'common:base'), qualifiedKey('/root/a', 'common:base'));
   });
 });

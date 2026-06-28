@@ -62,7 +62,7 @@ export async function resolveAndLocate(
   fromDoc: vscode.TextDocument,
   label: string
 ): Promise<vscode.Location | undefined> {
-  const root = model.root;
+  const root = model.rootFor(fromDoc.fileName);
   if (!root) {
     return undefined;
   }

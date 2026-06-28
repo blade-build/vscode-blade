@@ -9,6 +9,7 @@ export interface BladeTarget {
   deps: string[]; // canonical 'path:name' keys
   visibility: string[];
   tags: string[];
+  root?: string; // absolute BLADE_ROOT this target was dumped from (set by TargetModel)
   [attr: string]: unknown;
 }
 
@@ -17,9 +18,18 @@ export function targetLabel(t: { path: string; name: string }): string {
   return `//${t.path}:${t.name}`;
 }
 
-/** Canonical key `path:name` as used in `deps` and the target database. */
+/** Canonical key `path:name` as used in `deps` and within a single root. */
 export function targetKey(t: { path: string; name: string }): string {
   return `${t.path}:${t.name}`;
+}
+
+/**
+ * Cross-root-unique identity. Target keys (`path:name`) and package paths are
+ * only unique within one BLADE_ROOT, so the model qualifies them with the
+ * absolute root to disambiguate when several workspaces are open at once.
+ */
+export function qualifiedKey(root: string, key: string): string {
+  return `${root}\u0000${key}`;
 }
 
 /**
