@@ -3,7 +3,13 @@
 为 [Blade](https://github.com/blade-build/blade-build) 构建系统提供的官方 Visual
 Studio Code 扩展。
 
+[![Marketplace](https://img.shields.io/visual-studio-marketplace/v/blade-build.vscode-blade?label=Marketplace&logo=visualstudiocode)](https://marketplace.visualstudio.com/items?itemName=blade-build.vscode-blade)
+[![Installs](https://img.shields.io/visual-studio-marketplace/i/blade-build.vscode-blade)](https://marketplace.visualstudio.com/items?itemName=blade-build.vscode-blade)
+
 *[English](README.md) · [文档](https://blade-build.github.io/)*
+
+**安装：** [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=blade-build.vscode-blade)
+· 或运行 `code --install-extension blade-build.vscode-blade`
 
 ## 功能
 
