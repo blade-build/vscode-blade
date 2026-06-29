@@ -6,7 +6,7 @@ build system.
 [![Marketplace](https://img.shields.io/visual-studio-marketplace/v/blade-build.vscode-blade?label=Marketplace&logo=visualstudiocode)](https://marketplace.visualstudio.com/items?itemName=blade-build.vscode-blade)
 [![Installs](https://img.shields.io/visual-studio-marketplace/i/blade-build.vscode-blade)](https://marketplace.visualstudio.com/items?itemName=blade-build.vscode-blade)
 
-*[中文说明](README.zh-CN.md) · [Documentation](https://github.com/blade-build/vscode-blade/tree/main/doc/en)*
+*[中文说明](README.zh-CN.md) · [Documentation](https://blade-build.github.io/vscode-blade/docs/en/)*
 
 **Install:** [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=blade-build.vscode-blade)
 · or run `code --install-extension blade-build.vscode-blade`
