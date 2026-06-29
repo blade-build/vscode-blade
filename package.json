@@ -2,7 +2,7 @@
   "name": "vscode-blade",
   "displayName": "Blade Build",
   "description": "First-party Visual Studio Code support for the Blade build system: build/run/test targets, a targets explorer, BUILD-file language features, and clangd-based C/C++ IntelliSense.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "blade-build",
   "license": "MIT",
   "icon": "assets/logo.png",

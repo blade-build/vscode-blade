@@ -3,7 +3,20 @@
 All notable changes to the Blade VS Code extension are documented here. The
 format is based on [Keep a Changelog](https://keepachangelog.com/).
 
-## [Unreleased]
+## [0.2.0] - 2026-06-29
+
+### Added
+
+- Multi-root workspaces — every `BLADE_ROOT` in the window is discovered and
+  shown as its own top-level node; targets, tasks, navigation, and diagnostics
+  are each routed to the workspace that owns them.
+- A short demo (animated GIF) in the README.
+
+### Changed
+
+- Documentation is now published at <https://blade-build.github.io/vscode-blade/>.
+
+## [0.1.0]
 
 ### Added
 

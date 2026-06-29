@@ -3,6 +3,8 @@
 .vscode-test/**
 .vscode-test.mjs
 *.vsix
+assets/demo.gif
+assets/demo.mp4
 src/**
 out/**
 doc/**
