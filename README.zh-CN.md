@@ -11,6 +11,12 @@ Studio Code 扩展。
 **安装：** [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=blade-build.vscode-blade)
 · 或运行 `code --install-extension blade-build.vscode-blade`
 
+## 演示
+
+跳转到目标及其 BUILD 声明，然后构建、测试、调试 —— 全程不离开编辑器：
+
+![Blade for VS Code：跳转到目标与 BUILD 文件，并进行构建、测试、调试](https://raw.githubusercontent.com/blade-build/vscode-blade/main/assets/demo.gif)
+
 ## 功能
 
 - **目标浏览器** —— 以**目录树**形式展示工作区内的所有目标，并提供

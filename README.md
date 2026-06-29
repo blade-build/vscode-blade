@@ -11,6 +11,12 @@ build system.
 **Install:** [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=blade-build.vscode-blade)
 · or run `code --install-extension blade-build.vscode-blade`
 
+## Demo
+
+Jump to a target and its BUILD declaration, then build, test, and debug it — without leaving the editor:
+
+![Blade for VS Code: navigating to targets and BUILD files, then building, testing, and debugging](https://raw.githubusercontent.com/blade-build/vscode-blade/main/assets/demo.gif)
+
 ## Features
 
 - **Targets explorer** — every target in the workspace, laid out as a **directory
