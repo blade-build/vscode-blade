@@ -3,8 +3,9 @@
 First-party Visual Studio Code support for the [Blade](https://github.com/blade-build/blade-build)
 build system.
 
-[![Marketplace](https://img.shields.io/visual-studio-marketplace/v/blade-build.vscode-blade?label=Marketplace&logo=visualstudiocode)](https://marketplace.visualstudio.com/items?itemName=blade-build.vscode-blade)
-[![Installs](https://img.shields.io/visual-studio-marketplace/i/blade-build.vscode-blade)](https://marketplace.visualstudio.com/items?itemName=blade-build.vscode-blade)
+[![Version](https://vsmarketplacebadges.dev/version-short/blade-build.vscode-blade.svg)](https://marketplace.visualstudio.com/items?itemName=blade-build.vscode-blade)
+[![Installs](https://vsmarketplacebadges.dev/installs-short/blade-build.vscode-blade.svg)](https://marketplace.visualstudio.com/items?itemName=blade-build.vscode-blade)
+[![Rating](https://vsmarketplacebadges.dev/rating-short/blade-build.vscode-blade.svg)](https://marketplace.visualstudio.com/items?itemName=blade-build.vscode-blade)
 
 *[中文说明](README.zh-CN.md) · [Documentation](https://blade-build.github.io/vscode-blade/docs/en/)*
 

@@ -3,8 +3,9 @@
 为 [Blade](https://github.com/blade-build/blade-build) 构建系统提供的官方 Visual
 Studio Code 扩展。
 
-[![Marketplace](https://img.shields.io/visual-studio-marketplace/v/blade-build.vscode-blade?label=Marketplace&logo=visualstudiocode)](https://marketplace.visualstudio.com/items?itemName=blade-build.vscode-blade)
-[![Installs](https://img.shields.io/visual-studio-marketplace/i/blade-build.vscode-blade)](https://marketplace.visualstudio.com/items?itemName=blade-build.vscode-blade)
+[![Version](https://vsmarketplacebadges.dev/version-short/blade-build.vscode-blade.svg)](https://marketplace.visualstudio.com/items?itemName=blade-build.vscode-blade)
+[![Installs](https://vsmarketplacebadges.dev/installs-short/blade-build.vscode-blade.svg)](https://marketplace.visualstudio.com/items?itemName=blade-build.vscode-blade)
+[![Rating](https://vsmarketplacebadges.dev/rating-short/blade-build.vscode-blade.svg)](https://marketplace.visualstudio.com/items?itemName=blade-build.vscode-blade)
 
 *[English](README.md) · [文档](https://blade-build.github.io/vscode-blade/docs/zh/)*
 
