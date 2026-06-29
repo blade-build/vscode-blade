@@ -3,6 +3,13 @@
 All notable changes to the Blade VS Code extension are documented here. The
 format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.2.1] - 2026-06-30
+
+### Fixed
+
+- Replace the retired shields.io Marketplace badges with `vsmarketplacebadges.dev`
+  (version / installs / rating).
+
 ## [0.2.0] - 2026-06-29
 
 ### Added
