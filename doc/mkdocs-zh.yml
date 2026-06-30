@@ -1,4 +1,4 @@
-# 中文文档的 MkDocs 配置（readthedocs 主题），风格参考 Blade 文档。页面标题取自各
+# 中文文档的 MkDocs 配置（Material 主题），风格参考 Blade 文档。页面标题取自各
 # 文件的 H1；仅下方的章节标题在此写明。
 site_name: Blade for VS Code
 site_description: Blade Visual Studio Code 扩展文档
@@ -10,16 +10,46 @@ site_dir: ../_site/zh
 use_directory_urls: true
 
 theme:
-  name: readthedocs
-  highlightjs: true
+  name: material
   language: zh
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.tracking
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.tabs.link
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: 切换到深色模式
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: 切换到浅色模式
 
 markdown_extensions:
   - admonition
+  - tables
   - toc:
       permalink: true
-  - tables
-  - fenced_code
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.inlinehilite
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.tabbed:
+      alternate_style: true
 
 nav:
   - index.md

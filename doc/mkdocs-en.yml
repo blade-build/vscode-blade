@@ -1,4 +1,4 @@
-# MkDocs config for the English documentation (readthedocs theme), mirroring the
+# MkDocs config for the English documentation (Material theme), mirroring the
 # Blade docs. Page titles come from each file's H1; only section headers below
 # are spelled out.
 site_name: Blade for VS Code
@@ -11,15 +11,46 @@ site_dir: ../_site/en
 use_directory_urls: true
 
 theme:
-  name: readthedocs
-  highlightjs: true
+  name: material
+  language: en
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.tracking
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.tabs.link
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
 
 markdown_extensions:
   - admonition
+  - tables
   - toc:
       permalink: true
-  - tables
-  - fenced_code
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.inlinehilite
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.tabbed:
+      alternate_style: true
 
 nav:
   - index.md
